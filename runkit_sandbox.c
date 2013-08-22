@@ -398,6 +398,10 @@ child_open_basedir_set:
 		char *p, *s = Z_STRVAL_PP(tmpzval);
 		int len;
 
+#if (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 4) || (PHP_MAJOR_VERSION >= 6)
+		zend_auto_global *auto_global;
+#endif
+
 		while ((p = strchr(s, ','))) {
 			if (p - s) {
 				*p = '\0';
@@ -407,7 +411,11 @@ child_open_basedir_set:
 #endif
 							NULL TSRMLS_CC);
 #if (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 4) || (PHP_MAJOR_VERSION >= 6)
-				zend_activate_auto_globals(TSRMLS_C);
+			if (zend_hash_find(CG(auto_globals), s, p - s + 1, (void *) &auto_global) != SUCCESS) {
+				php_error_docref(NULL TSRMLS_CC, E_ERROR, "Cannot locate the newly created autoglobal");
+			}else{
+				auto_global->armed = 0;
+			}
 #else
 				zend_auto_global_disable_jit(s, p - s TSRMLS_CC);
 #endif
